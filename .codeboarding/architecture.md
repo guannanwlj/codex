@@ -2,20 +2,22 @@
 
 ## Overview
 
-Codex is an AI coding agent built in Rust, entered primarily through Terminal Frontends (the interactive terminal UI, CLI, and Node/npm wrapper). Its core is the Agent Core Engine, which orchestrates sessions, prompt templates, configuration, and built-in tools, while the App Server Platform exposes those sessions over a structured client/server protocol for IDEs and SDK consumers. Supporting this runtime are Execution & Sandboxing for OS-level command isolation and egress control, and Cloud & Backend Services for OpenAI/ChatGPT API clients, auth, and model-provider plumbing.
+Codex is an AI coding agent written in Rust, entered primarily through the Interactive Terminal UI & CLI, which pairs a large terminal UI with a headless CLI and terminal plumbing. The core runtime is the Rust Agent Core Engine, whose agent execution loop drives the turn/protocol model and thread/rollout state. Around that core, the Client/Server App Platform exposes the agent programmatically via protocol definitions, daemon, and JSON-RPC transports, Backend API Connectivity & Authentication handles ChatGPT/OpenAPI clients and login flows, and Model Providers & Local Runtimes abstracts providers like Ollama and LM Studio.
 
 ## Architectural Patterns
 
-- Hexagonal / Ports & Adapters (primary): domain core
-- Client–Server / RPC hub: app-server (daemon + client
-- Plugin/Extension architecture: ext/ (web-search, image-generation, guardian-v2, goal, memories),
-- Layered security (defense-in-depth): execpolicy → sandbox mode →
-- Agent loop / pipeline: prompt templates → model
-- Polyglot monorepo: Cargo workspace nested inside Bazel workspace
+- Cargo Workspace / Multi-Crate Monorepo (microkernel-with-modules design)
+- Client-Server (Agent-as-a-Service)
+- Layered Hub-and-Spoke
+- Tool-Use / ReAct Agent Loop
+- Sandboxed Execution Broker (Defense-in-Depth)
+- Plugin/Extension Architecture
+- Event-Driven / Message-Protocol Boundaries
+- Polyglot Facade
 
 ## Project Context
 
-- **Project Type:** AI Coding Agent / Developer Productivity CLI Platform
+- **Project Type:** AI Coding Agent CLI / Local Agent Runtime
 - **Domain:** AI/ML
 
 ## Tech Stack
@@ -32,69 +34,71 @@ _No standard entry points detected._
 
 _Each module links to a per-module keyword file listing its native symbols (file/function/class names kept verbatim for exact grep), ranked by importance. The exact formula depends on the module's graph density: dense graphs use `0.30·bridge + 0.30·usage + 0.15·type + 0.15·activity + 0.10·exported`; sparse graphs (calls hidden behind runtime dispatch) use `0.20·bridge + 0.20·usage + 0.15·type + 0.15·activity + 0.15·exported + 0.15·file_hub`. See each keyword file's header for the rule that produced its scores. Agents read a module's keyword file on demand._
 
-### Agent Core Engine
+### Rust Agent Core Engine
 
-The central Rust engine that drives Codex sessions, handling orchestration, the internal session protocol, prompt templates, configuration, and the agent's built-in tools.
+The heart of the system: the agent execution loop, turn/protocol model, thread and rollout state.
 
-### Terminal Frontends
+### Interactive Terminal UI & CLI
 
-The user-facing entry points including the interactive terminal UI, the Rust CLI, and the Node/npm distribution wrapper.
+User-facing interactive frontends: the large TUI (1,500+ files) and the headless CLI, plus terminal plumbing.
 
-- Keywords: [`keywords/2.md`](keywords/2.md) — 9 scored symbol(s)
+### Client/Server App Platform
 
-### App Server Platform
-
-The client/server surface that exposes Codex sessions over a structured protocol (daemon, transports, protocol types, test clients) for IDEs and SDKs to build on.
+Server binaries and transports that expose Codex programmatically (protocol definitions, daemon, JSON-RPC transport, remote exec server).
 
 - Keywords: [`keywords/3.md`](keywords/3.md) — 1 scored symbol(s)
 
-### Execution & Sandboxing
+### Backend API Connectivity & Authentication
 
-Command execution and OS-level isolation including the exec server, Linux/Windows sandbox implementations, network egress proxy, shell escalation, and execution policy.
+HTTP/websocket clients, OpenAPI models, and login/credential flows for ChatGPT/OpenAI backend access.
 
-- Keywords: [`keywords/4.md`](keywords/4.md) — 22 scored symbol(s)
+### Model Providers & Local Runtimes
 
-### Cloud & Backend Services
+Provider abstraction and local model runtimes for Ollama/LM Studio, plus model metadata management.
 
-All remote/API plumbing including OpenAI/ChatGPT backend clients, cloud tasks and config, login/auth, model provider abstraction, and HTTP/WebSocket transport.
+### Sandboxing & Execution Safety
 
-### Extensibility
+OS-level isolation and approval enforcement for agent-run commands and patches.
 
-The extension subsystem providing JavaScript/V8-powered code mode, ext/ extensions, lifecycle hooks, plugins, agent skills, and external-agent migration.
+- Keywords: [`keywords/6.md`](keywords/6.md) — 22 scored symbol(s)
 
-- Keywords: [`keywords/6.md`](keywords/6.md) — 168 scored symbol(s)
+### MCP, Connectors & Tooling Ecosystem
 
-### MCP & Integrations
+MCP client/server implementation, external connectors, and the built-in tool surface (file search, shell, git).
 
-Model Context Protocol support and external integrations including MCP client/server stacks, connectors to external systems, and local model runtimes.
+### Extensibility & Agent Capabilities
 
-- Keywords: [`keywords/7.md`](keywords/7.md) — 165 scored symbol(s)
+The extension/plugin framework and higher-level agent features layered on core (skills, prompts, memories, goals, guardian).
 
-### Session State & Persistence
+- Keywords: [`keywords/8.md`](keywords/8.md) — 168 scored symbol(s)
 
-Durable session data including threads, rollouts and rollout tracing, histories, memories, and agent identity/graph storage.
+### Configuration, Persistence & Session Context
 
-### Shared Foundations
+Config loading, home-directory layout, history, and session/context state.
 
-Cross-cutting utility crates used by nearly every subsystem, including general utils, file search/watch/FS access, git helpers, patch application, async helpers, and feature flags.
+### Cloud Services & Code-Mode Runtime
 
-### Telemetry & Observability
+Cloud-backed task execution and the V8-powered "code mode" runtime for programmatic agent control.
 
-Instrumentation and diagnostics including OpenTelemetry, analytics, diagnostics, feedback capture, and response debug context.
+### Observability, Diagnostics & Telemetry
 
-### SDKs
+OTel instrumentation, analytics, feedback, and build/diagnostic metadata.
 
-Official language SDKs that wrap the Codex engine for programmatic use.
+### Language SDKs
 
-- Keywords: [`keywords/11.md`](keywords/11.md) — 1289 scored symbol(s)
+Official Python and TypeScript SDKs that drive Codex via the app-server protocol.
 
-### Build & Release Infrastructure
+- Keywords: [`keywords/12.md`](keywords/12.md) — 200 scored symbol(s)
 
-The build/CI/packaging layer including Bazel workspace config, portability patches for third-party deps, Nix, lint tools, and packaging/release scripts.
+### npm Distribution Layer
 
-- Keywords: [`keywords/12.md`](keywords/12.md) — 309 scored symbol(s)
+The codex-cli npm package that packages and ships the compiled Rust binaries.
 
-### Documentation & Project Meta
+- Keywords: [`keywords/13.md`](keywords/13.md) — 9 scored symbol(s)
 
-User/developer documentation and repository-level metadata.
+### Build & Tooling Infrastructure
+
+Bazel/Nix build system, dependency patches, vendored third-party code, and repo-wide scripts.
+
+- Keywords: [`keywords/14.md`](keywords/14.md) — 200 scored symbol(s)
 
