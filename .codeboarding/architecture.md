@@ -2,23 +2,20 @@
 
 ## Overview
 
-This is an interactive AI coding agent delivered as a terminal-based CLI, with the CLI Entry & Distribution module (the user-facing binary and its npm wrapper) serving as the main entry point that parses arguments and routes subcommands. Interactive use is handled by the Terminal UI (TUI), while the App & Exec Server Stack exposes the same agent for headless, IDE, and non-interactive execution via the app-server and exec-server. At the core of the runtime is the Agent Core Engine, which owns the session/conversation loop, tool execution, and the core-client event protocol, backed by Cloud Backend & Authentication for OpenAI/ChatGPT API clients, login flows, and cloud tasks.
+Codex is an AI coding agent built in Rust, entered primarily through Terminal Frontends (the interactive terminal UI, CLI, and Node/npm wrapper). Its core is the Agent Core Engine, which orchestrates sessions, prompt templates, configuration, and built-in tools, while the App Server Platform exposes those sessions over a structured client/server protocol for IDEs and SDK consumers. Supporting this runtime are Execution & Sandboxing for OS-level command isolation and egress control, and Cloud & Backend Services for OpenAI/ChatGPT API clients, auth, and model-provider plumbing.
 
 ## Architectural Patterns
 
-- Monorepo with polyglot workspace boundaries (Rust core, npm
-- Cargo workspace / layered crate architecture (small single-purpose
-- Hub-and-spoke agent kernel (codex-rs/core as orchestration hub for
-- Client–server with protocol contract (JSON-RPC app-server, app-server-client, app-server-daemon,
-- Plugin/extension architecture (codex-rs/ext with guardian-v2, memories, goal, web-search,
-- MCP (Model Context Protocol) boundary for first-class external
-- Defense-in-depth sandboxing (execpolicy, linux-sandbox, process-hardening, shell-escalation, network-proxy wrapping
-- Event-sourced/session persistence (thread-store, agent-graph-store, rollout, thread-manager, memories)
-- Hexagonal architecture flavor (TUI/SDK interfaces decoupled from engine
+- Hexagonal / Ports & Adapters (primary): domain core
+- Client–Server / RPC hub: app-server (daemon + client
+- Plugin/Extension architecture: ext/ (web-search, image-generation, guardian-v2, goal, memories),
+- Layered security (defense-in-depth): execpolicy → sandbox mode →
+- Agent loop / pipeline: prompt templates → model
+- Polyglot monorepo: Cargo workspace nested inside Bazel workspace
 
 ## Project Context
 
-- **Project Type:** AI Coding Agent Platform / CLI Developer Tool
+- **Project Type:** AI Coding Agent / Developer Productivity CLI Platform
 - **Domain:** AI/ML
 
 ## Tech Stack
@@ -37,69 +34,67 @@ _Each module links to a per-module keyword file listing its native symbols (file
 
 ### Agent Core Engine
 
-The central orchestration layer handling the session/conversation loop, tool execution, patch application, prompt templates, and the core-client event protocol.
+The central Rust engine that drives Codex sessions, handling orchestration, the internal session protocol, prompt templates, configuration, and the agent's built-in tools.
 
-### Terminal UI (TUI)
+### Terminal Frontends
 
-The interactive terminal front-end rendering sessions, slash commands, and terminal-aware behavior.
+The user-facing entry points including the interactive terminal UI, the Rust CLI, and the Node/npm distribution wrapper.
 
-### CLI Entry & Distribution
+- Keywords: [`keywords/2.md`](keywords/2.md) — 9 scored symbol(s)
 
-The user-facing binary and its npm wrapper providing argument parsing, subcommand routing, and package install/shim logic.
+### App Server Platform
 
-- Keywords: [`keywords/3.md`](keywords/3.md) — 9 scored symbol(s)
+The client/server surface that exposes Codex sessions over a structured protocol (daemon, transports, protocol types, test clients) for IDEs and SDKs to build on.
 
-### App & Exec Server Stack
+- Keywords: [`keywords/3.md`](keywords/3.md) — 1 scored symbol(s)
 
-Headless/long-running server surfaces: the app-server for IDE/daemon-style integration and exec-server for non-interactive execution, plus their transports and clients.
+### Execution & Sandboxing
 
-- Keywords: [`keywords/4.md`](keywords/4.md) — 1 scored symbol(s)
+Command execution and OS-level isolation including the exec server, Linux/Windows sandbox implementations, network egress proxy, shell escalation, and execution policy.
 
-### Cloud Backend & Authentication
+- Keywords: [`keywords/4.md`](keywords/4.md) — 22 scored symbol(s)
 
-Integration with the OpenAI/ChatGPT backend: API clients, OpenAPI-generated models, login/auth flows, cloud config, and cloud tasks.
+### Cloud & Backend Services
 
-### MCP, Plugins & Extensibility
+All remote/API plumbing including OpenAI/ChatGPT backend clients, cloud tasks and config, login/auth, model provider abstraction, and HTTP/WebSocket transport.
 
-Extensibility surfaces: MCP client, Codex-as-MCP-server, hooks, skills, connectors, and the ext/ extension layer.
+### Extensibility
+
+The extension subsystem providing JavaScript/V8-powered code mode, ext/ extensions, lifecycle hooks, plugins, agent skills, and external-agent migration.
 
 - Keywords: [`keywords/6.md`](keywords/6.md) — 168 scored symbol(s)
 
-### Sandboxing & Security
+### MCP & Integrations
 
-Command execution isolation and policy enforcement: Linux/Windows sandboxes, bubblewrap, execpolicy, network interception, and process/credential hardening.
+Model Context Protocol support and external integrations including MCP client/server stacks, connectors to external systems, and local model runtimes.
 
-- Keywords: [`keywords/7.md`](keywords/7.md) — 22 scored symbol(s)
+- Keywords: [`keywords/7.md`](keywords/7.md) — 165 scored symbol(s)
 
-### Model Providers & Transport
+### Session State & Persistence
 
-Provider abstraction and networking plumbing: OpenAI/oss provider selection, model catalog management, HTTP/WebSocket clients, local-model adapters, and the responses-API proxy.
+Durable session data including threads, rollouts and rollout tracing, histories, memories, and agent identity/graph storage.
 
-### State, Persistence & Memory
+### Shared Foundations
 
-Durable session state: rollout/resume files with tracing, thread store, conversation history, agent memory and identity, and graph storage.
+Cross-cutting utility crates used by nearly every subsystem, including general utils, file search/watch/FS access, git helpers, patch application, async helpers, and feature flags.
 
-### Code Mode / Embedded V8
+### Telemetry & Observability
 
-The JavaScript "code mode" execution subsystem: protocol, host, and runtime crates running deterministic agent-authored code on an embedded V8.
+Instrumentation and diagnostics including OpenTelemetry, analytics, diagnostics, feedback capture, and response debug context.
 
-### Language SDKs
+### SDKs
 
-Official client SDKs for driving Codex programmatically — Python and TypeScript — which consume the server protocol and ship with the binary.
+Official language SDKs that wrap the Codex engine for programmatic use.
 
 - Keywords: [`keywords/11.md`](keywords/11.md) — 1289 scored symbol(s)
 
 ### Build & Release Infrastructure
 
-Cross-language build and packaging: Bazel modules/rules/toolchains, third-party portability patches, dev/release scripts, lint tools, and root build manifests.
+The build/CI/packaging layer including Bazel workspace config, portability patches for third-party deps, Nix, lint tools, and packaging/release scripts.
 
 - Keywords: [`keywords/12.md`](keywords/12.md) — 309 scored symbol(s)
 
-### Shared Foundation & Utilities
+### Documentation & Project Meta
 
-Cross-cutting crates consumed by nearly every other Rust module: general utils, config loading, Codex home management, filesystem/git/shell helpers, telemetry, and observability.
-
-### Documentation
-
-User and contributor documentation: installation, configuration, sandboxing, execpolicy, skills, and slash-command references.
+User/developer documentation and repository-level metadata.
 
